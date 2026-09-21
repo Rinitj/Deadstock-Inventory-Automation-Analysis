@@ -56,11 +56,25 @@ No manual filtering of the raw 73K row file required. One run handles the aggreg
 
 ## Visuals
 
-* `01_days_of_cover_distribution.png`: where every SKU sits on the fast to slow spectrum
-* `02_deadstock_value_by_category.png`: dollar value tied up in slow stock, by category
-* `03_top10_overstocked_skus.png`: the specific SKUs carrying the most tied up value
-* `04_abc_classification.png`: revenue concentration across the catalog
-* `05_reorder_alerts.png`: current stock versus reorder point for the 15 most urgent SKUs
+<img src="charts/01_days_of_cover_distribution.png" width="700">
+
+*Where every SKU sits on the fast to slow spectrum*
+
+<img src="charts/02_deadstock_value_by_category.png" width="700">
+
+*Dollar value tied up in slow stock, by category*
+
+<img src="charts/03_top10_overstocked_skus.png" width="700">
+
+*The specific SKUs carrying the most tied up value*
+
+<img src="charts/04_abc_classification.png" width="700">
+
+*Revenue concentration across the catalog*
+
+<img src="charts/05_reorder_alerts.png" width="700">
+
+*Current stock versus reorder point for the 15 most urgent SKUs*
 
 ## Repository Structure
 

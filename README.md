@@ -22,11 +22,6 @@ The analysis covers daily inventory records for 100 SKUs across 5 stores over a 
 * **Matplotlib / Seaborn:** inventory health visuals.
 * **Inventory formulas:** Days of Cover, Inventory Turnover, ABC Classification, and Reorder Point with statistical safety stock.
 
-Before modeling anything, the assumed unique key was checked and it did not hold up. The `Category` field is unstable for a given Store plus Product over time, the same combination shows up under four or five different categories on different dates. Store plus Product, on the other hand, is tracked consistently every single day across all 731 days with zero gaps, so that pairing became the real SKU definition, with each SKU labeled by its most frequent category purely for chart readability.
-
-Two formulas were applied per SKU. Days of Cover equals current inventory divided by average daily sales. Reorder Point equals average daily sales times lead time, plus a safety stock buffer sized at 1.65 times the standard deviation of daily sales, scaled by the square root of lead time, targeting roughly a 95% service level.
-
-Lead time was set to 1 day, calibrated from the data itself. Average Days of Cover across the catalog is only about 1 to 2 days, and inventory is capped at 500 units against roughly 136 units of average daily sales, pointing to a fast moving, tightly stocked catalog rather than one on a multi week replenishment cycle. Deadstock risk was defined as the top quarter of the catalog by Days of Cover rather than the usual zero sales in 30 days rule, since almost every SKU here sells nearly daily and there is no classic dead SKU in this dataset, just relatively slower movers holding a disproportionate share of cash.
 
 ## Inventory Health Results & Visuals
 

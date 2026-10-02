@@ -1,60 +1,34 @@
 # Deadstock & Inventory Automation Dashboard
 
-Turning a manual "scroll through 100 SKUs and guess" review into a script that outputs two ready to act files: what to reorder now, and what is quietly tying up cash on the shelf.
+## The Review Nobody Should Do By Hand
 
-## Overview
+Somewhere out there is a person scrolling through 100 SKUs trying to eyeball which ones are overstocked and which ones are about to run out. That review should never be a manual job, so this project turns it into a script. Run it once and two files fall out the other end, one telling you what to reorder right now, and one telling you what is quietly tying up cash on the shelf.
 
-Two years of daily inventory data (2022 to 2024) across 5 stores and 100 SKUs, analyzed to answer the two questions every retailer with physical stock actually cares about: what is overstocked, and what is about to run out.
+Two years of daily inventory data, 2022 to 2024, across 5 stores and 100 SKUs, analyzed to answer the two questions every retailer with physical stock actually cares about. What is overstocked, and what is about to run out.
 
-## Business Questions
+## Business Questions Answered
 
-* Which SKUs are overstocked or slow moving, and how much working capital do they tie up?
-* Which SKUs are at risk of stocking out and need reordering right now?
-* Can this review be automated instead of checked SKU by SKU?
+* **Overstock & Working Capital:** Which SKUs are overstocked or slow moving, and how much working capital do they tie up.
+* **Stockout Risk:** Which SKUs are at risk of stocking out and need reordering right now.
+* **Automation Feasibility:** Can this review be automated instead of checked SKU by SKU.
 
-## Tools & Technologies
+## Project Scope
 
-* **Python (Pandas, NumPy)** for SKU level aggregation and the automation logic
-* **Matplotlib / Seaborn** for the inventory health visuals
-* **Inventory formulas**: Days of Cover, Inventory Turnover, ABC Classification, Reorder Point with statistical safety stock
+The analysis covers daily inventory records for 100 SKUs across 5 stores over a full two year window. The scope is deliberately split into two operational outputs rather than one combined dashboard, a reorder list for what needs restocking immediately, and a deadstock report for what is overstocked and tying up cash. The raw file (`retail_store_inventory.csv`) comes from the [Retail Store Inventory Forecasting Dataset](https://www.kaggle.com/datasets/anirudhchauhan/retail-store-inventory-forecasting-dataset) on Kaggle, synthetic data, downloaded separately and placed in `data/raw/` before running `analysis.py`. Derived outputs (`sku_inventory_summary.csv`, `reorder_alerts.csv`, `deadstock_report.csv`) are already included in `data/`.
 
-## Data
+## Tools & Methodologies
 
-`retail_store_inventory.csv` comes from the [Retail Store Inventory Forecasting Dataset](https://www.kaggle.com/datasets/anirudhchauhan/retail-store-inventory-forecasting-dataset) on Kaggle (synthetic data). Not checked into this repo, so download it and place it in `data/raw/` before running `analysis.py`. Derived outputs (`sku_inventory_summary.csv`, `reorder_alerts.csv`, `deadstock_report.csv`) are already included in `data/`.
+* **Python (Pandas, NumPy):** SKU level aggregation and the automation logic itself.
+* **Matplotlib / Seaborn:** inventory health visuals.
+* **Inventory formulas:** Days of Cover, Inventory Turnover, ABC Classification, and Reorder Point with statistical safety stock.
 
-## Methodology & Key Assumption
+Before modeling anything, the assumed unique key was checked and it did not hold up. The `Category` field is unstable for a given Store plus Product over time, the same combination shows up under four or five different categories on different dates. Store plus Product, on the other hand, is tracked consistently every single day across all 731 days with zero gaps, so that pairing became the real SKU definition, with each SKU labeled by its most frequent category purely for chart readability.
 
-Before modeling anything, I checked whether my assumed unique key actually behaved like one. It did not.
+Two formulas were applied per SKU. Days of Cover equals current inventory divided by average daily sales. Reorder Point equals average daily sales times lead time, plus a safety stock buffer sized at 1.65 times the standard deviation of daily sales, scaled by the square root of lead time, targeting roughly a 95% service level.
 
-* The `Category` field is unstable for a given Store plus Product over time. The same combination shows up under four or five different categories on different dates.
-* Store plus Product, on the other hand, is tracked consistently every single day across all 731 days with zero gaps. So that pairing became the real SKU definition, with each SKU labeled by its most frequent category purely for chart readability.
+Lead time was set to 1 day, calibrated from the data itself. Average Days of Cover across the catalog is only about 1 to 2 days, and inventory is capped at 500 units against roughly 136 units of average daily sales, pointing to a fast moving, tightly stocked catalog rather than one on a multi week replenishment cycle. Deadstock risk was defined as the top quarter of the catalog by Days of Cover rather than the usual zero sales in 30 days rule, since almost every SKU here sells nearly daily and there is no classic dead SKU in this dataset, just relatively slower movers holding a disproportionate share of cash.
 
-Two formulas were applied per SKU:
-
-* **Days of Cover** = Current Inventory ÷ Average Daily Sales
-* **Reorder Point** = (Average Daily Sales × Lead Time) + Safety Stock, where Safety Stock = 1.65 × (Std Dev of Daily Sales) × √(Lead Time), targeting roughly a 95% service level
-
-Lead time was set to 1 day, calibrated from the data itself. Average Days of Cover across the catalog is only about 1 to 2 days, and inventory is capped at 500 units against roughly 136 units of average daily sales. That points to a fast moving, tightly stocked catalog rather than one on a multi week replenishment cycle.
-
-Deadstock risk was defined as the **top quarter of the catalog by Days of Cover**, not the usual "zero sales in 30 days" rule, since almost every SKU here sells nearly daily. There is no classic dead SKU in this dataset, just relatively slower movers holding a disproportionate share of cash.
-
-## Key Results
-
-* **62 of 100 SKUs** are currently below their reorder point and need restocking now.
-* **25 SKUs** (the slowest moving quarter by Days of Cover) are flagged as deadstock risk, together holding **$590,409**, about **40% of total inventory value ($1,459,310)**.
-* **Electronics** carries the largest deadstock value at roughly **$189K**, followed by **Toys ($134K)** and **Groceries ($101K)**. Electronics is the obvious first candidate for a pricing or promotion push.
-* **ABC classification came out flatter than typical retail data**: 78% of SKUs land in Class A, versus the textbook "20% of SKUs drive 80% of revenue" pattern. Flagging this honestly rather than smoothing it over: it could reflect genuinely even demand, or it could be a limitation of working with a synthetic practice dataset rather than real transactions with natural demand skew.
-
-## The Automation Piece
-
-Running `analysis.py` on a fresh daily export in the same format produces, automatically:
-
-* **`reorder_alerts.csv`**: every SKU below its reorder point, sorted by urgency (lowest current stock first), ready to hand to purchasing
-* **`deadstock_report.csv`**: every SKU flagged as deadstock risk, sorted by dollar value tied up (highest first), ready for a markdown or clearance review
-
-No manual filtering of the raw 73K row file required. One run handles the aggregation, flagging, and sorting.
-
-## Visuals
+## Inventory Health Results & Visuals
 
 <img src="charts/01_days_of_cover_distribution.png" width="700">
 
@@ -76,6 +50,16 @@ No manual filtering of the raw 73K row file required. One run handles the aggreg
 
 *Current stock versus reorder point for the 15 most urgent SKUs*
 
+* **62 of 100 SKUs** are currently below their reorder point and need restocking now.
+* **25 SKUs** (the slowest moving quarter by Days of Cover) are flagged as deadstock risk, together holding **$590,409**, about **40% of total inventory value ($1,459,310)**.
+* **Electronics carries the largest deadstock value** at roughly **$189K**, followed by **Toys ($134K)** and **Groceries ($101K)**, making it the obvious first candidate for a pricing or promotion push.
+* **ABC classification came out flatter than typical retail data**: 78% of SKUs land in Class A, versus the textbook 20% of SKUs drive 80% of revenue pattern. That could reflect genuinely even demand, or it could be a limitation of working with a synthetic practice dataset rather than real transactions with natural demand skew.
+* **The automation output**: running `analysis.py` on a fresh daily export produces `reorder_alerts.csv`, every SKU below its reorder point sorted by urgency, and `deadstock_report.csv`, every flagged SKU sorted by dollar value tied up, with no manual filtering of the raw 73K row file required.
+
+## Skills Demonstrated
+
+SKU level data aggregation, inventory health formulas (Days of Cover, Reorder Point, Safety Stock, ABC Classification), Python automation of a recurring operational report, and validating a data key before trusting it rather than after.
+
 ## Repository Structure
 
 ```
@@ -94,18 +78,17 @@ project4_inventory/
 └── README.md
 ```
 
-## Conclusion
+## Key Takeaway
 
-This moves past a static "here is what happened" report into an operational tool. Point it at a fresh inventory export and it flags what to reorder and what to mark down, with the underlying assumptions (lead time, service level) stated explicitly so they can be tuned to real supplier terms. The Category field check earlier is a small but deliberate example of validating assumptions before reporting on them, not just handing over a clean looking output.
+This moves past a static here is what happened report into an operational tool. Point it at a fresh inventory export and it flags what to reorder and what to mark down, with the underlying assumptions, lead time and service level, stated explicitly so they can be tuned to real supplier terms. The Category field check earlier is a small but deliberate example of validating assumptions before reporting on them, not just handing over a clean looking output.
 
 ## Future Scope
 
-* **Real replenishment cadence**: calibrate lead time from actual purchase order history instead of inferring it from stock levels
-* **Cost based safety stock**: weight safety stock by holding cost versus stockout cost per category, rather than one universal service level
-* **Scheduled automation**: run this on a schedule (daily cron job or Power Automate) and email the two output files directly to purchasing
-* **Markdown recommendation**: extend the deadstock report with a suggested discount tier based on Days of Cover, tying into the sensitivity analysis from the companion regression project
+* Calibrate lead time from actual purchase order history instead of inferring it from stock levels.
+* Weight safety stock by holding cost versus stockout cost per category, rather than one universal service level.
+* Run this on a schedule, a daily cron job or Power Automate, and email the two output files directly to purchasing.
+* Extend the deadstock report with a suggested discount tier based on Days of Cover, tying into the sensitivity analysis from the companion regression project.
 
 ## Author
 
 **Rinit Jain**
-
